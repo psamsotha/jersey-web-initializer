@@ -28,16 +28,16 @@ public class AsFilterServletContainerProvider implements ServletContainerProvide
         final Class<? extends Application> applicationCls = getApplicationClass(classes);
         if (applicationCls != null) {
             final ApplicationPath appPath = applicationCls.getAnnotation(ApplicationPath.class);
-            if (appPath == null) {
-                LOGGER.warning("Application class is not annotated with ApplicationPath");
-                return;
-            }
-            registerFilter(context, applicationCls, classes, createMappingPath(appPath));
+            final String mapping = createMappingPath(appPath);
+            registerFilter(context, applicationCls, classes, mapping);
+
             // to stop Jersey servlet initializer from trying to register another servlet
             classes.remove(applicationCls);
+        } else {
+            LOGGER.warning("No Application class found.");
         }
     }
-    
+
     private static void registerFilter(ServletContext context, Class<? extends Application> cls,
                                        Set<Class<?>> classes, String mapping) {
         final ResourceConfig resourceConfig = ResourceConfig.forApplicationClass(cls, classes);
@@ -47,16 +47,25 @@ public class AsFilterServletContainerProvider implements ServletContainerProvide
         registration.setAsyncSupported(true);
     }
 
+    /**
+     * Searches for a single Application class that is used for the Jersey configuration.
+     * This can be a JAX-RS {@code javax.ws.rs.core.Application} or a Jersey
+     * {@code org.glassfish.jersey.server.ResourceConfig}.
+     *
+     * @param classes the set of classes discovered by the Servlet container.
+     * @return an Application class annotated with {@code @ApplicationPath}, or null of one is not found.
+     */
     private static Class<? extends Application> getApplicationClass(Set<Class<?>> classes) {
         Class<? extends Application> applicationCls = null;
         for (Class<?> cls : classes) {
             if (Application.class.isAssignableFrom(cls)) {
                 applicationCls = cls.asSubclass(Application.class);
-                break;
+                if (applicationCls.getAnnotation(ApplicationPath.class) != null) {
+                    break;
+                } else {
+                    LOGGER.info("Application class found with no @ApplicationPath: " + applicationCls);
+                }
             }
-        }
-        if (applicationCls == null) {
-            LOGGER.warning("No Application Class Found");
         }
         return applicationCls;
     }
