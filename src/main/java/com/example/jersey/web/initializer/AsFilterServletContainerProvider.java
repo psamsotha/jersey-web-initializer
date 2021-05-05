@@ -31,10 +31,10 @@ public class AsFilterServletContainerProvider implements ServletContainerProvide
             final String mapping = createMappingPath(appPath);
             registerFilter(context, applicationCls, classes, mapping);
 
-            // to stop Jersey servlet initializer from trying to register another servlet
+            // Stop Jersey servlet initializer from registering another servlet
             classes.remove(applicationCls);
         } else {
-            LOGGER.warning("No Application class found.");
+            LOGGER.warning("No Application class annotated with @ApplicationPath found.");
         }
     }
 
@@ -56,18 +56,12 @@ public class AsFilterServletContainerProvider implements ServletContainerProvide
      * @return an Application class annotated with {@code @ApplicationPath}, or null of one is not found.
      */
     private static Class<? extends Application> getApplicationClass(Set<Class<?>> classes) {
-        Class<? extends Application> applicationCls = null;
         for (Class<?> cls : classes) {
-            if (Application.class.isAssignableFrom(cls)) {
-                applicationCls = cls.asSubclass(Application.class);
-                if (applicationCls.getAnnotation(ApplicationPath.class) != null) {
-                    break;
-                } else {
-                    LOGGER.info("Application class found with no @ApplicationPath: " + applicationCls);
-                }
+            if (Application.class.isAssignableFrom(cls) && cls.isAnnotationPresent(ApplicationPath.class)) {
+                return cls.asSubclass(Application.class);
             }
         }
-        return applicationCls;
+        return null;
     }
 
     private static String createMappingPath(final ApplicationPath ap) {
