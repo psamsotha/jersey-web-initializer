@@ -14,6 +14,11 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.glassfish.jersey.servlet.internal.spi.ServletContainerProvider;
 
+/**
+ * Jersey uses this hook while initializing the application. This class taps into
+ * this and registers the Jersey application as a Servlet Filter instead the
+ * default, which is as a Servlet.
+ */
 public class AsFilterServletContainerProvider implements ServletContainerProvider {
 
     private static final Logger LOGGER = Logger.getLogger(AsFilterServletContainerProvider.class.getName());
@@ -27,18 +32,17 @@ public class AsFilterServletContainerProvider implements ServletContainerProvide
                 LOGGER.warning("Application class is not annotated with ApplicationPath");
                 return;
             }
-            final String mapping = createMappingPath(appPath);
-            addFilter(context, applicationCls, classes, mapping);
+            registerFilter(context, applicationCls, classes, createMappingPath(appPath));
             // to stop Jersey servlet initializer from trying to register another servlet
             classes.remove(applicationCls);
         }
     }
     
-    private static void addFilter(ServletContext context, Class<? extends Application> cls,
-                                  Set<Class<?>> classes, String mapping) {
+    private static void registerFilter(ServletContext context, Class<? extends Application> cls,
+                                       Set<Class<?>> classes, String mapping) {
         final ResourceConfig resourceConfig = ResourceConfig.forApplicationClass(cls, classes);
-        final ServletContainer filter = new ServletContainer(resourceConfig);
-        final FilterRegistration.Dynamic registration = context.addFilter(cls.getName(), filter);
+        final ServletContainer jerseyFilter = new ServletContainer(resourceConfig);
+        final FilterRegistration.Dynamic registration = context.addFilter(cls.getName(), jerseyFilter);
         registration.addMappingForUrlPatterns(null, true, mapping);
         registration.setAsyncSupported(true);
     }

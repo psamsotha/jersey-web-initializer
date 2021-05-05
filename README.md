@@ -13,6 +13,6 @@ To run:
 
 Normally the JSP should be not be available because Jersey is configured with
 the mapping `/*`. But with the `ServletContainerProvider` implementation,
-we register Jersey as filter, and disable the registration of the servlet.
+we register Jersey as a filter, and disable the registration of the servlet.
 We then set the Jersey property to forward on 404, so the index.jsp is now
 accessible.
